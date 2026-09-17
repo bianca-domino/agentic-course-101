@@ -115,13 +115,17 @@ re-run the same dataset, see the difference before a user does.
 > [!NOTE]
 > If you compare Jobs in the **Jobs** dashboard, it will show differences in summary metadata and diagnostic statistics. If you compare Jobs in the **Experiments** view, you're comparing logged experiment runs rather than raw Job outputs, which is useful for seeing how configuration changes affected performance.
 
-## Step 6 — Deploy it (1 min)
+## Step 6 — Deploy your agent (1 min)
 
 Click the agent version that had the best metrics, then click **Create Agent**. Specify an agent name, set the **Agent file** to `app.sh` and click **Create Agent**. To deploy your agent, navigate to **Deployments → Apps & Agents**, select your agent, then click **Deploy**. Customize the URL ending of your agent if you want to, then select a small hardware tier and click **Deploy Agent version**.  This deploys your agent as a chat page. Once the agent has deployed successfully, you can view your agent either by clicking **View Agent**.
 
 Ask your agent a couple of questions about the Titanic set then check the **Usage** and **Performance** of your agent by navigating to your agent in **Deployments → Apps & Agents**.
 
 `app/server.py` uses the same `@add_tracing` decorator, so live questions are traced too.  Select the **Monitoring** tab to watch them arrive as you ask your agent more questions.
+
+## Step 7 — Stop your agent and Workspace (1 min)
+
+To stop your agent, go to **Deployments → Apps & Agents**, click the breadcrumbs and select **Stop**. Also make sure to stop your Workspace, which you can do directly in your running Workspace, or from the **Workspaces** page.
 
 ---
 
