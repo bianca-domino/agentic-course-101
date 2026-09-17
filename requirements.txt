@@ -1,0 +1,6 @@
+# Everything here is already in the Domino Standard Environment.
+# Listed for reference and for running the agent outside Domino.
+pandas
+pyyaml
+mlflow
+flask

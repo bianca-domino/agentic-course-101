@@ -1,0 +1,16 @@
+# Agent configuration. Domino logs this file as parameters on every agent version,
+# so changing a value here and re-running the Job gives you a comparable run.
+
+agent_name: titanic-agent
+agent_version: v1
+
+planner:
+  # "keyword" needs no LLM at all. See "Add an LLM" in the README.
+  mode: keyword
+
+response:
+  style: concise    # concise | detailed
+  decimals: 1
+
+data:
+  path: data/titanic.csv
