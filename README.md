@@ -50,14 +50,14 @@ terminal, a Job, or the App.
 
 That's the whole setup. No environment variables, no endpoint, no credentials.
 
-You can verify that all the files imported successfully from this repo by checking the **Code** section in the Project navigation pane.
+You can verify that all the files imported successfully from this repo by checking your Project **Code** page.
 
 ## Step 2 — Try the agent (1 min)
 
 Launch a Workspace with the IDE of your choice and use the default Domino Standard Environment. Once the Workspace is running, open a new terminal and run:
 
 ```bash
-python agent.py
+python agent/core.py
 ```
 
 You'll see it answer four questions and decline an off-topic one. Have a look at `agent/core.py` —
@@ -65,46 +65,63 @@ it's three tools, a planner, and an answer formatter, all in one file.
 
 ## Step 3 — Run the evaluation as a Job (2 min)
 
-**Jobs → Run**, with the command:
+You can run a Job interactively in the UI, from the CLI, or from Domino API (see [Create and run Jobs](https://docs.domino.ai/6.3/platform-capabilities/core-concepts/jobs/create-and-run-jobs) for detailed steps for each option). To keep things simple, let's run it in the UI.
+
+In your running Workspace, click **Run Job** and paste the following path to the `dev_eval.py` script in the **File Name or Command** field:
 
 ```
-python scripts/dev_eval.py
+scripts/dev_eval.py
 ```
 
-This runs the agent over the 10 questions in `data/sample_questions.csv`. Each question becomes its own
+Click **Start** to run the agent over the 10 questions in `data/sample_questions.csv`. Each question becomes its own
 trace with evaluation scores attached.
 
+> [!IMPORTANT]
 > Run it as a **Job**, not from the Workspace terminal. That's what creates a deployable agent
 > version with lineage back to the exact commit and config.
 
+Each time you run an evaluation script as a Domino Job, it creates an agent version containing traces and evaluation scores for that configuration.
+
 ## Step 4 — Look at what you captured (2 min)
 
-Open **Experiments** in the left nav and select the run you just created.
+You can view and analyze traces from any agent version by navigating to **Experiments** in the left nav of your Project and clicking into the run you just created. Click through the tabs to see what each tab holds for this run:
 
-- **Traces** tab → click a trace to see the span tree: `plan` (which tool it chose and why), the
-  `TOOL` span with its arguments and return value, then `format_answer`. Plus latency for each step.
-- **Metrics** tab → mean tool accuracy, answer accuracy, and overall score across all 10 questions.
-- **Parameters** tab → everything from `ai_system_config.yaml`, so you always know which
+- **Overview** → The run's identity and provenance: who ran it, when, how long it took, the hardware and environment, and the Git commit it came from.
+- **Parameters** → Everything from `ai_system_config.yaml`, so you always know which
   configuration produced these numbers.
+- **Metrics** → Mean tool accuracy, answer accuracy, and overall score across all 10 questions.
+- **Traces** → Click a trace to see the span tree: `plan` (which tool it chose and why), the
+`<tool>` span with its arguments and return value, then `format_answer`. Plus latency for each step.
+- **Outputs** → Any artifacts the run produced.
+- **Logs** → The raw stdout and stderr from the Job, which is where you look when a run fails.
 
 Question 10 is off-topic on purpose. Check that the agent declined it.
 
 ## Step 5 — Change one thing and compare (2 min)
 
-Open `ai_system_config.yaml`, change `style` from `concise` to `detailed`, save, and run the Job
-again. Then tick both runs in **Experiments** and click **Compare**.
+In your running Workspace, open `ai_system_config.yaml`, change `style` from `concise` to `detailed` and save.
 
-Mean overall score goes from **0.96** to **0.99** — the detailed answers include the average fare,
+> [!IMPORTANT]
+> You need to [sync all changes](https://docs.domino.ai/cloud/platform-capabilities/core-concepts/workspaces/sync-changes-in-a-workspace#sync-all-changes) before you can run the next Job.
+
+Repeat Step 3 to start a new Job with the updated configuration.
+
+Once the Job has run successfully, navigate to **Experiments** and click into the experiment. Select both agent versions and click the **Compare** icon (it looks like two overlapping squares).
+
+Scroll down to see a side-by-side comparison of the two agent versions: Mean overall score goes from **0.96** to **0.99** — the detailed answers include the average fare,
 which question 3 asks for. That's the loop the whole platform is built around: change one thing,
 re-run the same dataset, see the difference before a user does.
 
+> [!NOTE]
+> If you compare Jobs in the **Jobs** dashboard, it will show differences in summary metadata and diagnostic statistics. If you compare Jobs in the **Experiments** view, you're comparing logged experiment runs rather than raw Job outputs, which is useful for seeing how configuration changes affected performance.
+
 ## Step 6 — Deploy it (1 min)
 
-From the better run, click **Deploy Agent**, set the app command to `app.sh`, pick the smallest
-hardware tier, and deploy. Your agent shows up under **Deployments → Apps & Agents** as a chat page.
+Click the agent version that had the best metrics, then click **Create Agent**. Specify an agent name, set the **Agent file** to `app.sh` and click **Create Agent**. To deploy your agent, navigate to **Deployments → Apps & Agents**, select your agent, then click **Deploy**. Customize the URL ending of your agent if you want to, then select a small hardware tier and click **Deploy Agent version**.  This deploys your agent as a chat page. Once the agent has deployed successfully, you can view your agent either by clicking **View Agent**.
 
-`app/server.py` uses the same `@add_tracing` decorator, so live questions are traced too — open the
-deployed agent's **Monitoring** tab to watch them arrive.
+Ask your agent a couple of questions about the Titanic set then check the **Usage** and **Performance** of your agent by navigating to your agent in **Deployments → Apps & Agents**.
+
+`app/server.py` uses the same `@add_tracing` decorator, so live questions are traced too.  Select the **Monitoring** tab to watch them arrive as you ask your agent more questions.
 
 ---
 
@@ -170,3 +187,5 @@ LlamaIndex, and others. The LLM itself can be an external provider or one you ho
 - [Agents in Domino](https://docs.domino.ai/cloud/platform-capabilities/features/agents/index)
 - [Agentic AI overview](https://docs.domino.ai/cloud/platform-capabilities/features/agents/agentic-ai-overview)
 - [Develop agentic systems](https://docs.domino.ai/cloud/platform-capabilities/features/agents/develop)
+- [Create a Git-based Project]()
+- [Create and run Jobs](https://docs.domino.ai/6.3/platform-capabilities/core-concepts/jobs/create-and-run-jobs)
