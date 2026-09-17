@@ -18,6 +18,54 @@ question ──> plan ──> survival_rate("sex") ──> "Survival rate by sex
 
 ---
 
+## Mental model: your new research assistant
+
+Imagine you've hired an assistant to answer questions about the Titanic passenger records. They're
+new, so they can't do anything you haven't set up for them.
+
+You give them **one filing cabinet** — the passenger records, and nothing else. You pin **a short
+job brief** above their desk: answer in this style, round to one decimal, don't wander off topic.
+You teach them **three specific lookups** they're allowed to perform, and you pin **a flowchart** to
+the wall telling them which lookup matches which kind of question.
+
+Before you let them near a real visitor, you give them **a test with a marking scheme**: ten
+questions you already know the answers to. And you ask them to **show their working** on every one —
+not just the answer, but which drawer they opened and why.
+
+If they pass, they go to **the front desk** to help real visitors. And you keep reading their
+working notes while they're out there.
+
+### Mapping it to this repo
+
+| The analogy | In the repo |
+| --- | --- |
+| The filing cabinet they may consult | `data/titanic.csv` |
+| The three lookups they're trained to do | the tools in `agent/core.py` |
+| The flowchart for choosing a lookup | `plan()` in `agent/core.py` |
+| The job brief pinned above the desk | `ai_system_config.yaml` |
+| The test paper with known answers | `data/sample_questions.csv` |
+| The marking scheme | `agent/evaluator.py` |
+| Sitting them down to take the test | `scripts/dev_eval.py`, run as a Job |
+| Their shown working, question by question | the **Traces** tab |
+| Their file: this version, this brief, these marks | an agent version in the Experiment Manager |
+| Putting them on the front desk | `app/server.py`, launched by `app.sh` |
+| Reading their notes while they're on the desk | the **Monitoring** tab |
+
+### Two things the analogy makes obvious
+
+**Why the job brief is a separate file.** Rewriting the brief is not the same as retraining the
+assistant. In Step 5 you change one line of `ai_system_config.yaml`, give the same test again, and
+compare the marks — same assistant, different instructions. That's why Domino logs the brief as
+parameters right next to the scores.
+
+**Why there's no LLM yet.** Right now your assistant follows a flowchart. They're reliable and they
+never improvise, but they can only handle questions the flowchart anticipated. Adding an LLM is
+hiring someone who reads the question and decides for themselves which drawer to open — more
+capable, less predictable, and exactly why the test, the marking scheme, and the shown working
+matter more once you do it.
+
+---
+
 ## Repo layout
 
 ```
