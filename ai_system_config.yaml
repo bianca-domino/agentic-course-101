@@ -9,7 +9,7 @@ planner:
   mode: keyword
 
 response:
-  style: concise    # concise | detailed
+  style: detailed    # concise | detailed
   decimals: 1
 
 data:
