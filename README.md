@@ -18,22 +18,49 @@ question ──> plan ──> survival_rate("sex") ──> "Survival rate by sex
 
 ---
 
+## Repo layout
+
+```
+.
+├── README.md
+├── app.sh                       # App command Domino runs to launch the agent
+├── ai_system_config.yaml        # agent settings, logged as parameters on every run
+├── requirements.txt             # reference only — all of it ships in the DSE
+├── agent/
+│   ├── __init__.py
+│   ├── core.py                  # the agent: planner, three tools, answer formatting
+│   └── evaluator.py             # scores each answer (deterministic, no LLM judge)
+├── app/
+│   └── server.py                # Flask chat UI for the deployed agent
+├── scripts/
+│   └── dev_eval.py              # batch evaluation — the script you run as a Job
+└── data/
+    ├── titanic.csv              # the dataset (891 passengers)
+    └── sample_questions.csv     # 10 test questions with expected tool and answer
+```
+
+Every path in the code resolves from the project root, so the scripts run the same from a Workspace
+terminal, a Job, or the App.
+
+---
+
 ## Step 1 — Create the project (2 min)
 
-**Projects → New Project → Git-based**, and paste this repo's URL. (Or create a blank project and
-upload these files.)
+**Projects → Create Project** → Choose a Git-based project → Click **Input URL**, then paste this repo's URL and create your project. (Or create a blank project and upload these files.)
 
 That's the whole setup. No environment variables, no endpoint, no credentials.
 
+You can verify that all the files imported successfully from this repo by checking the **Code** section in the Project navigation pane.
+
 ## Step 2 — Try the agent (1 min)
 
-Launch a Workspace and run:
+Launch a Workspace with the IDE of your choice and use the default Domino Standard Environment. Once the Workspace is running, open a new terminal and run:
 
 ```bash
 python agent.py
 ```
 
-You'll see it answer four questions and decline an off-topic one. Have a look at `agent.py` —
+You'll see it answer four questions and decline an off-topic one. Have a look at `agent/core.py` —
 it's three tools, a planner, and an answer formatter, all in one file.
 
 ## Step 3 — Run the evaluation as a Job (2 min)
@@ -41,10 +68,10 @@ it's three tools, a planner, and an answer formatter, all in one file.
 **Jobs → Run**, with the command:
 
 ```
-python dev_eval.py
+python scripts/dev_eval.py
 ```
 
-This runs the agent over the 10 questions in `sample_questions.csv`. Each question becomes its own
+This runs the agent over the 10 questions in `data/sample_questions.csv`. Each question becomes its own
 trace with evaluation scores attached.
 
 > Run it as a **Job**, not from the Workspace terminal. That's what creates a deployable agent
@@ -76,33 +103,21 @@ re-run the same dataset, see the difference before a user does.
 From the better run, click **Deploy Agent**, set the app command to `app.sh`, pick the smallest
 hardware tier, and deploy. Your agent shows up under **Deployments → Apps & Agents** as a chat page.
 
-`app.py` uses the same `@add_tracing` decorator, so live questions are traced too — open the
+`app/server.py` uses the same `@add_tracing` decorator, so live questions are traced too — open the
 deployed agent's **Monitoring** tab to watch them arrive.
 
 ---
-
-## What's in the repo
-
-| File | What it does |
-| --- | --- |
-| `agent.py` | The agent: planner, three tools, answer formatting |
-| `ai_system_config.yaml` | Settings logged as parameters on every run |
-| `dev_eval.py` | Batch evaluation — the script you run as a Job |
-| `evaluation.py` | Scores each answer (deterministic, no LLM judge) |
-| `sample_questions.csv` | 10 test questions with expected tool and expected answer |
-| `app.py` / `app.sh` | Flask chat UI for the deployed agent |
-| `data/titanic.csv` | The dataset (891 passengers) |
 
 ## How the tracing works
 
 Two decorators, and that's it.
 
 ```python
-# agent.py — each tool becomes a TOOL span inside the trace
+# agent/core.py — each tool becomes a TOOL span inside the trace
 @mlflow.trace(span_type="TOOL", name="survival_rate")
 def survival_rate(group_by): ...
 
-# dev_eval.py — the top-level call becomes the trace, with everything nested inside
+# scripts/dev_eval.py — the top-level call becomes the trace, everything nests inside it
 @add_tracing(name="titanic_question", evaluator=judge)
 def answer_question(data_point):
     return run_agent(data_point["question"])
@@ -119,8 +134,8 @@ config alongside them.
 ## Add an LLM
 
 The planner is keyword rules so this lesson runs anywhere. To make the agent decide for itself,
-replace one function — `plan()` in `agent.py` — with an LLM call, and set `planner.mode: llm` in
-the config. Nothing else changes: same tools, same tracing, same evaluation, same deployment.
+replace one function — `plan()` in `agent/core.py` — with an LLM call, and set `planner.mode: llm`
+in the config. Nothing else changes: same tools, same tracing, same evaluation, same deployment.
 
 With a framework like Pydantic AI, the agent and its tools replace the planner outright, and you
 tell `@add_tracing` to auto-instrument it:
@@ -146,6 +161,7 @@ LlamaIndex, and others. The LLM itself can be an external provider or one you ho
 | Symptom | Fix |
 | --- | --- |
 | No run appears in the Experiment Manager | The script was run from a Workspace terminal. Run it as a Job |
+| `ModuleNotFoundError: agent` | Make sure `agent/__init__.py` exists — it's what makes `agent` an importable package |
 | `ModuleNotFoundError: domino.agents` | Your environment predates Domino 6.2. Add `RUN pip install "dominodatalab[agents]"` to the environment's Dockerfile instructions and rebuild |
 | The app won't start | Check the App command is `app.sh` and that the hardware tier has at least 1 GB of memory |
 

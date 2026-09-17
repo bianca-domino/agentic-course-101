@@ -5,10 +5,16 @@ decorator used in dev_eval.py runs here, so every question a user asks in
 production becomes a trace.
 """
 
+import sys
+from pathlib import Path
+
+# Make the project root importable when this file is run from app/.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from domino.agents.tracing import add_tracing, init_tracing
 from flask import Flask, jsonify, request
 
-from agent import load_config, run_agent
+from agent.core import load_config, run_agent
 
 init_tracing()
 

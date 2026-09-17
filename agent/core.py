@@ -18,7 +18,9 @@ import mlflow
 import pandas as pd
 import yaml
 
-ROOT = Path(__file__).parent
+# Project root — one level up from this file, so paths work no matter where
+# the script is launched from.
+ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "ai_system_config.yaml"
 
 

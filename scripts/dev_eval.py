@@ -1,6 +1,6 @@
 """Run the agent over sample_questions.csv — one trace per question.
 
-Run this as a Domino Job:  python dev_eval.py
+Run this as a Domino Job:  python scripts/dev_eval.py
 
 That creates an agent version in the Experiment Manager holding every trace,
 its evaluation scores, and your ai_system_config.yaml as parameters. Only runs
@@ -8,8 +8,13 @@ that come from a Job can be deployed.
 """
 
 import csv
+import sys
 from pathlib import Path
 from typing import Any, Dict
+
+# Make the project root importable when this script is run from scripts/.
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 from domino.agents.tracing import add_tracing
 
@@ -18,12 +23,11 @@ try:  # current SDK
 except ImportError:  # older SDK
     from domino.agents.logging import DominoRun as DominoAgentContext
 
-from agent import run_agent
-from evaluation import score_answer
+from agent.core import run_agent
+from agent.evaluator import score_answer
 
-ROOT = Path(__file__).parent
 CONFIG_PATH = str(ROOT / "ai_system_config.yaml")
-QUESTIONS_PATH = ROOT / "sample_questions.csv"
+QUESTIONS_PATH = ROOT / "data" / "sample_questions.csv"
 
 AGGREGATED_METRICS = [
     ("tool_score", "mean"),
