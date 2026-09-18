@@ -8,7 +8,7 @@ model:
   # "auto" asks the endpoint which model it serves. Replace with an exact name,
   # or set the LLM_MODEL environment variable, to pin it.
   name: auto
-  temperature: 0.1
+  temperature: 0.9
   max_tokens: 400
 
 prompt:
