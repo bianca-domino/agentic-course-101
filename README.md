@@ -1,6 +1,6 @@
 # Lesson 1 — Build your first agent in Domino
 
-Connect an LLM, give it tools, evaluate it, and deploy it — in under 10 minutes.
+Host an LLM, give it tools, evaluate it, and deploy it as an agent.
 
 The agent answers questions about the Titanic passenger dataset. The LLM reads each question,
 decides which tool to call, and writes the answer from what the tool returned. Domino traces every
@@ -11,6 +11,9 @@ question ──> LLM decides ──> survival_rate("sex") ──> "Women survive
                              dataset_summary()
                              find_passenger("Braund")
 ```
+
+**Time:** about 10 minutes, plus a few minutes for the LLM endpoint to start the first time. If your
+team already has an endpoint or an external provider key, skip to Step 3.
 
 ---
 
@@ -31,11 +34,33 @@ not just the answer, but which drawer they opened and why.
 If they pass, they go to **the front desk** to help real visitors. And you keep reading their
 working notes while they're out there.
 
+### Hiring the assistant: model vs endpoint
+
+Before any of that, you need the assistant themselves. That's the LLM, and it comes in two parts
+that are easy to confuse.
+
+**Registering a model** is putting a CV on file. It records who this person is and what they can
+do — but a CV can't answer questions. Nothing is running yet, and nothing is costing you anything.
+
+**Deploying an endpoint** is hiring them: a desk, a machine to work on, and a phone number on the
+door. Now there's somebody at the other end when you call. That phone number is the `BASE_URL` your
+agent dials, and it's why the endpoint has to exist before your code can call the model.
+
+**Where they sit is your choice.** A Domino-hosted endpoint is an assistant working *in your
+building*, on your GPUs — nothing leaves the site, you pick the hardware, you pay for the desk while
+they're on the clock. An external provider is *phoning an agency*: no desk to set up and a sharper
+assistant on the line, but your questions leave the building. Both dial the same way
+(OpenAI-compatible), so switching later is a config change, not a rewrite.
+
+This lesson hires in-house so you see the whole path. Step 2 has the swap if you'd rather phone out.
+
 ### Mapping it to this repo
 
-| The analogy | In the repo |
+| The analogy | In the repo or the UI |
 | --- | --- |
-| The assistant themselves | the LLM you connect in Step 2 |
+| The CV on file | a registered model, under **Models → Register** |
+| The hired assistant with a phone number | an endpoint, under **Models → Endpoints** |
+| Their phone number | `LLM_BASE_URL` |
 | The filing cabinet they may consult | `data/titanic.csv` |
 | The three lookups they're trained to do | the tools in `agent/core.py` |
 | The job brief pinned above the desk | `ai_system_config.yaml` |
@@ -50,7 +75,7 @@ working notes while they're out there.
 ### Two things the analogy makes obvious
 
 **Why the job brief is a separate file.** Rewriting the brief is not the same as hiring a different
-assistant. In Step 6 you change one line of `ai_system_config.yaml`, set the same test again, and
+assistant. In Step 7 you change one line of `ai_system_config.yaml`, set the same test again, and
 compare the marks — same assistant, different instructions. That's why Domino logs the brief as
 parameters right next to the scores.
 
@@ -93,26 +118,50 @@ the App.
 
 Check the project's **Code** page to confirm the files imported.
 
-## Step 2 — Connect an LLM
+## Step 2 — Host an LLM
 
-Go to **Settings → Environment variables** and add the following variables:
+Two parts: register the model, then deploy it as an endpoint. You need **Project Collaborator**
+permissions.
+
+**Register it.** Go to **Models → Register → Gen AI model**. Choose **Hugging Face** as the source,
+set the path to `Qwen/Qwen2.5-7B-Instruct`, set Type to **LLM**, and create.
+
+**Deploy it.** From the registered model's **Endpoints** tab, click **Create endpoint**, then:
+
+- **Environment** → **Domino vLLM Environment**, which serves an OpenAI-compatible API.
+- **Hardware Tier** → a GPU tier with at least 16 GB of VRAM for this 7B model.
+- **Advanced → vLLM arguments** → add `--enable-auto-tool-choice` and `--tool-call-parser hermes`.
+- **Access** → add yourself, and anyone else who'll run the lesson.
+
+> [!IMPORTANT]
+> Those two vLLM arguments are what let the model call tools. Without them the agent has a brain but
+> no hands, and every answer will be a guess.
+
+The endpoint takes a few minutes to start. When it's running, open its **Calling** tab and copy the
+URL — that's your `BASE_URL` for the next step.
+
+> [!NOTE]
+> **Prefer an external provider?** Skip the registration and endpoint entirely: use the provider's
+> base URL and key in Step 3 with a model like `gpt-4o-mini`. Nothing else in the lesson changes.
+> [Set up LLM access](https://docs.domino.ai/cloud/platform-capabilities/features/llms/index)
+> compares the two approaches, and
+> [Host an LLM](https://docs.domino.ai/cloud/platform-capabilities/features/llms/host-an-llm) is the
+> full hosting guide.
+
+## Step 3 — Point the agent at it
+
+In **Settings → Environment variables**, add:
 
 | Name | Value |
 | --- | --- |
-| `LLM_BASE_URL` | Your endpoint URL, ending in `/v1` |
-| `LLM_API_KEY` | Your provider key — for a Domino-hosted endpoint, your Domino user API key |
-| `LLM_MODEL` | The model the endpoint serves, e.g. `Qwen/Qwen2.5-7B-Instruct` or `gpt-4o-mini` |
+| `LLM_BASE_URL` | The URL from the endpoint's **Calling** tab |
+| `LLM_MODEL` | `Qwen/Qwen2.5-7B-Instruct` |
+| `LLM_API_KEY` | External providers only. For a Domino-hosted endpoint, leave it out |
 
-Any OpenAI-compatible endpoint works. To host the model in Domino instead, register it under
-**Develop → Models → Register → Gen AI model**, deploy it under **Models → Endpoints**, and copy the
-`BASE_URL` from the endpoint's **Calling** tab.
+For a Domino-hosted endpoint there's no key to manage: `agent/core.py` picks up the access token
+that Domino serves at `http://localhost:8899/access-token` inside every Workspace, Job, and App.
 
-> [!IMPORTANT]
-> The endpoint must support **tool calling**, or the agent can't reach its tools. On a
-> Domino-hosted endpoint, add the vLLM arguments `--enable-auto-tool-choice` and
-> `--tool-call-parser hermes` on the endpoint's **Advanced** tab.
-
-## Step 3 — Try the agent
+## Step 4 — Try it
 
 Launch a Workspace on the Domino Standard Environment, open a terminal, and run:
 
@@ -125,7 +174,7 @@ Four questions, and one off-topic question it should decline. Each answer prints
 chose. Open `agent/core.py` — the three tools are plain Python functions, and their docstrings are
 what the LLM reads to decide when to call them.
 
-## Step 4 — Evaluate it as a Job
+## Step 5 — Evaluate it as a Job
 
 In your Workspace, click **Run Job**, put this in **File Name or Command**, and click **Start**:
 
@@ -133,7 +182,7 @@ In your Workspace, click **Run Job**, put this in **File Name or Command**, and 
 bash scripts/run_eval.sh
 ```
 
-This runs teh agent over all 10 questions in `data/sample_questions.csv`. Each becomes its own trace, scored by
+This runs all 10 questions in `data/sample_questions.csv`. Each becomes its own trace, scored by
 `agent/evaluator.py` on three metrics: did the LLM pick the right tool, does the answer contain the
 right figures, and is it concise.
 
@@ -141,7 +190,7 @@ right figures, and is it concise.
 > Run it as a **Job**, not from the terminal. Only Job runs create a deployable agent version with
 > lineage back to the exact commit and config.
 
-## Step 5 — Review what you captured
+## Step 6 — Review what you captured
 
 Go to **Experiments** and open the run. Each tab holds a different slice:
 
@@ -156,7 +205,7 @@ Go to **Experiments** and open the run. Each tab holds a different slice:
 Check question 10 — the off-topic one — and question 4, where the LLM has to pick `survival_rate`
 over `dataset_summary`.
 
-## Step 6 — Change one thing and compare
+## Step 7 — Change one thing and compare
 
 Open `ai_system_config.yaml`, change `temperature` from `0.1` to `0.9`, and save.
 
@@ -164,23 +213,25 @@ Open `ai_system_config.yaml`, change `temperature` from `0.1` to `0.9`, and save
 > [Sync your changes](https://docs.domino.ai/cloud/platform-capabilities/core-concepts/workspaces/sync-changes-in-a-workspace#sync-all-changes)
 > before starting the next Job, or it will run the old code.
 
-Repeat Step 4, then in **Experiments** select both agent versions and click the **Compare** icon. You'll see
+Repeat Step 5, then in **Experiments** select both agent versions and click **Compare**. You'll see
 the aggregate metrics side by side; open the **Traces** comparison to see both configurations
 answering the same question, so you can tell not just which is better but why.
 
 That's the loop the platform is built around: change one thing, re-run the same test, see the
 difference before a user does.
 
-## Step 7 — Deploy the winner
+## Step 8 — Deploy the winner
 
 Open the better agent version, click **Create Agent**, name it, set **Agent file** to `app.sh`, and
 create. Then go to **Deployments → Apps & Agents**, select it, click **Deploy**, pick a small
-hardware tier, and deploy. Once the agent is ready, click **View Agent**. Ask it a few questions.
+hardware tier, and deploy.
 
-`app/server.py` uses the same `@add_tracing` decorator as the evaluation
-script, so production conversations are traced too — watch them arrive under **Deployments → Apps & Agents** → **Monitoring** tab, alongside **Usage** and **Performance**.
+Ask it a few questions. `app/server.py` uses the same `@add_tracing` decorator as the evaluation
+script, so production conversations are traced too — watch them arrive under the **Monitoring** tab,
+alongside **Usage** and **Performance**.
 
-**Clean up:** stop the agent from **Deployments → Apps & Agents**, and stop your Workspace.
+**Clean up:** stop the agent from **Deployments → Apps & Agents**, stop your Workspace, and stop the
+LLM endpoint under **Models → Endpoints** — it holds a GPU while it runs.
 
 ---
 
@@ -204,7 +255,8 @@ framework makes — then runs `judge` on the result. `DominoAgentContext` groups
 comparable agent version and logs your YAML config as its parameters.
 
 This lesson uses Pydantic AI, but Domino auto-instruments any MLflow-supported framework: LangChain,
-OpenAI Agents SDK, LlamaIndex, and others. Swap the framework, keep the same two lines.
+OpenAI Agents SDK, LlamaIndex, and others. Traces are captured wherever the model is hosted, so an
+external provider looks the same in the Experiment Manager as a Domino-hosted one.
 
 ## Coming up
 
@@ -216,14 +268,18 @@ OpenAI Agents SDK, LlamaIndex, and others. Swap the framework, keep the same two
 
 | Symptom | Fix |
 | --- | --- |
-| `LLM_BASE_URL is not set` | Add the Step 2 variables, then restart the Workspace so they load |
-| 401 or 404 from the endpoint | Check the URL ends in `/v1` and `LLM_MODEL` matches a model the endpoint serves |
-| The agent answers without calling a tool | Tool calling isn't enabled on the endpoint — see the note in Step 2 |
+| Hugging Face model missing from the list | Some models need their licence accepted on Hugging Face first |
+| Endpoint stuck on "Starting" | The hardware tier is too small for the model. Check the endpoint logs and pick a tier with more VRAM |
+| `LLM_BASE_URL is not set` | Add the Step 3 variables, then restart the Workspace so they load |
+| 401 or 404 from the endpoint | Check the URL came from the **Calling** tab and `LLM_MODEL` matches the model the endpoint serves |
+| The agent answers without calling a tool | The vLLM tool-calling arguments are missing — see Step 2 |
 | No run in the Experiment Manager | The script ran from a terminal. Run it as a Job |
 | `ModuleNotFoundError: domino.agents` | Your environment predates Domino 6.2. Add `RUN pip install "dominodatalab[agents]"` to its Dockerfile instructions and rebuild |
 
 ## Docs
 
+- [Set up LLM access](https://docs.domino.ai/cloud/platform-capabilities/features/llms/index)
+- [Host an LLM](https://docs.domino.ai/cloud/platform-capabilities/features/llms/host-an-llm)
 - [Agents in Domino](https://docs.domino.ai/cloud/platform-capabilities/features/agents/index)
 - [Agentic AI overview](https://docs.domino.ai/cloud/platform-capabilities/features/agents/agentic-ai-overview)
 - [Develop agentic systems](https://docs.domino.ai/cloud/platform-capabilities/features/agents/develop)

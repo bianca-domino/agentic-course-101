@@ -4,7 +4,7 @@ The LLM reads the question, decides which tool to call, calls it, and writes the
 answer from what came back. Domino traces every step: the decision, the tool
 call, its arguments and result, plus tokens, latency and cost.
 
-Configured by the LLM_* environment variables (README step 2) and the settings
+Configured by the LLM_* environment variables (README step 3) and the settings
 in ai_system_config.yaml.
 """
 
@@ -13,6 +13,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
+import requests
 import yaml
 from pydantic_ai import Agent
 
@@ -99,6 +100,17 @@ def find_passenger(name_contains: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def _api_key() -> str:
+    """Domino-hosted endpoints authenticate with the local access token; external
+    providers use LLM_API_KEY."""
+    if os.environ.get("LLM_API_KEY"):
+        return os.environ["LLM_API_KEY"]
+    try:  # available inside any Domino Workspace, Job or App
+        return requests.get("http://localhost:8899/access-token", timeout=5).text.strip()
+    except Exception:
+        return os.environ.get("DOMINO_USER_API_KEY", "EMPTY")
+
+
 @lru_cache(maxsize=1)
 def create_agent() -> Agent:
     """Build the agent from ai_system_config.yaml plus the LLM_* environment variables."""
@@ -106,14 +118,13 @@ def create_agent() -> Agent:
 
     base_url = os.environ.get("LLM_BASE_URL")
     if not base_url:
-        raise RuntimeError("LLM_BASE_URL is not set — see README step 2.")
-    api_key = os.environ.get("LLM_API_KEY") or os.environ.get("DOMINO_USER_API_KEY", "EMPTY")
+        raise RuntimeError("LLM_BASE_URL is not set — see README step 3.")
     model_name = os.environ.get("LLM_MODEL") or config["model"]["name"]
 
     agent = Agent(
         OpenAIModel(
             model_name,
-            provider=OpenAIProvider(base_url=base_url.rstrip("/"), api_key=api_key),
+            provider=OpenAIProvider(base_url=base_url.rstrip("/"), api_key=_api_key()),
         ),
         system_prompt=config["prompt"]["system"],
         model_settings={
