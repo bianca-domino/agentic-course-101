@@ -170,6 +170,9 @@ endpoint (`GET /v1/models`) and uses what it reports. That's what `name: auto` m
 `ai_system_config.yaml`. Set `LLM_MODEL`, or replace `auto` with an exact name, when an endpoint
 serves more than one model or you want the choice recorded in the config.
 
+If you do pin a name, the agent checks it against the endpoint first and falls back to what's
+actually served — with a message saying so — rather than failing with a 404.
+
 ## Step 4 — Try it
 
 Launch a Workspace on the Domino Standard Environment, open a terminal, and run:
@@ -180,6 +183,12 @@ python agent/core.py
 ```
 
 It prints the model it resolved, then four answers and one refusal.
+
+To see what your endpoint actually serves, without running the agent:
+
+```bash
+python agent/core.py --models
+```
 
 > [!NOTE]
 > Pip may print `ERROR: pip's dependency resolver...` listing packages like `langchain-community`
@@ -291,7 +300,8 @@ external provider looks the same in the Experiment Manager as a Domino-hosted on
 | Hugging Face model missing from the list | Some models need their licence accepted on Hugging Face first |
 | Endpoint stuck on "Starting" | The hardware tier is too small for the model. Check the endpoint logs and pick a tier with more VRAM |
 | `LLM_BASE_URL is not set` | Add the Step 3 variables, then restart the Workspace so they load |
-| `404 — The model 'X' does not exist` | `LLM_MODEL` (or `model.name`) doesn't match what the endpoint serves. Clear it to let the agent auto-discover, or run `python -c "import sys; sys.path.insert(0,'.'); from agent.core import *; print(list_endpoint_models(_base_url()))"` to see the real name |
+| `404 — The model 'X' does not exist` | Run `python agent/core.py --models` to see what the endpoint serves. If `LLM_MODEL` is set to something else, clear it in **Settings → Environment variables** and restart the Workspace so the change loads |
+| The model name looks stale after editing it | Environment variables are injected at startup. Restart the Workspace (or start a new Job) after changing them |
 | 401 from the endpoint | Check the URL came from the **Calling** tab and that you have access to the endpoint |
 | The agent answers without calling a tool | The vLLM tool-calling arguments are missing — see Step 2 |
 | No run in the Experiment Manager | The script ran from a terminal. Run it as a Job |

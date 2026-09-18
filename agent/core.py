@@ -131,28 +131,46 @@ def list_endpoint_models(base_url: str) -> list:
 
 @lru_cache(maxsize=1)
 def resolve_model_name(base_url: str) -> str:
-    """Work out which model name to send.
+    """Work out which model name to send to the endpoint.
 
     An endpoint serves the model under the name it was registered with, which is
-    rarely the Hugging Face path — so by default we ask the endpoint instead of
-    guessing. Set LLM_MODEL, or model.name in the YAML, to pin it explicitly.
+    rarely the Hugging Face path. So we always ask the endpoint what it serves,
+    and only use an explicit LLM_MODEL (or model.name in the YAML) when the
+    endpoint confirms it — a stale override is a 404 waiting to happen.
     """
     explicit = os.environ.get("LLM_MODEL") or load_config()["model"].get("name")
-    if explicit and explicit != "auto":
-        return explicit
+    explicit = None if not explicit or explicit == "auto" else explicit
+    source = "LLM_MODEL" if os.environ.get("LLM_MODEL") else "ai_system_config.yaml"
 
     try:
         served = list_endpoint_models(base_url)
     except Exception as exc:
+        if explicit:
+            print(f"[agent] could not reach {base_url}/models ({exc}); trying '{explicit}'.")
+            return explicit
         raise RuntimeError(
             f"Could not ask {base_url}/models which model to use ({exc}). "
-            "Set the LLM_MODEL environment variable to the name you registered."
+            "Check LLM_BASE_URL, or set LLM_MODEL to the name you registered."
         ) from exc
 
     if not served:
         raise RuntimeError(f"{base_url} reports no available models. Is the endpoint running?")
+
+    if explicit and explicit not in served:
+        print(
+            f"[agent] {source} says '{explicit}', but the endpoint serves {served}. "
+            f"Using '{served[0]}' instead — clear {source} to silence this."
+        )
+        return served[0]
+
+    if explicit:
+        print(f"[agent] model '{explicit}' (pinned in {source}, confirmed by the endpoint)")
+        return explicit
+
     if len(served) > 1:
         print(f"[agent] endpoint serves {served}; using '{served[0]}'. Set LLM_MODEL to choose.")
+    else:
+        print(f"[agent] model '{served[0]}' (discovered from the endpoint)")
     return served[0]
 
 
@@ -199,7 +217,18 @@ def run_agent(question: str) -> dict:
 
 
 if __name__ == "__main__":
-    print(f"Using model: {resolve_model_name(_base_url())}\n")
+    import sys
+
+    if "--models" in sys.argv:  # diagnostics: what does the endpoint actually serve?
+        url = _base_url()
+        print(f"LLM_BASE_URL : {url}")
+        print(f"LLM_MODEL    : {os.environ.get('LLM_MODEL') or '(not set)'}")
+        print(f"config name  : {load_config()['model'].get('name')}")
+        print(f"served models: {list_endpoint_models(url)}")
+        sys.exit(0)
+
+    resolve_model_name(_base_url())
+    print()
     for q in [
         "What was the survival rate for women compared to men?",
         "How many passengers are in the dataset?",
