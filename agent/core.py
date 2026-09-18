@@ -174,6 +174,15 @@ def resolve_model_name(base_url: str) -> str:
     return served[0]
 
 
+def active_prompt(config: dict) -> str:
+    """The prompt named by prompt.active — the one thing Step 7 changes."""
+    prompts = config["prompt"]
+    name = prompts.get("active", "baseline")
+    if name not in prompts:
+        raise RuntimeError(f"prompt.active is '{name}', which is not defined in the config.")
+    return prompts[name].strip()
+
+
 @lru_cache(maxsize=1)
 def create_agent() -> Agent:
     """Build the agent from ai_system_config.yaml plus the LLM_* environment variables."""
@@ -187,7 +196,7 @@ def create_agent() -> Agent:
             model_name,
             provider=OpenAIProvider(base_url=base_url, api_key=_api_key()),
         ),
-        system_prompt=config["prompt"]["system"],
+        system_prompt=active_prompt(config),
         model_settings={
             "temperature": config["model"]["temperature"],
             "max_tokens": config["model"]["max_tokens"],

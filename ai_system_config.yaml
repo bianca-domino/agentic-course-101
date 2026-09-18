@@ -12,12 +12,22 @@ model:
   max_tokens: 400
 
 prompt:
-  system: >
+  # Which prompt below the agent uses. Switch to "improved" in Step 7 and re-run.
+  active: baseline
+
+  # A reasonable first draft. It never mentions the tools, so the model decides
+  # for itself whether to look anything up.
+  baseline: >
+    You are a helpful assistant that answers questions about the Titanic.
+
+  # The same job, specified properly: look it up, show the numbers, stay in scope.
+  improved: >
     You are a data analyst for the Titanic passenger dataset.
-    Always call a tool to get real numbers before answering - never guess.
-    Answer in two sentences or fewer and include the figures the tool returned.
-    If a question is not about the Titanic dataset, say that you can only answer
-    questions about the Titanic dataset and do not answer it.
+    Always call one of your tools to get real numbers before answering - never
+    answer from memory, and never guess.
+    Answer in two sentences or fewer and quote the exact figures the tool returned.
+    If a question is not about the Titanic dataset, reply that you can only answer
+    questions about the Titanic dataset, and do not answer it.
 
 data:
   path: data/titanic.csv

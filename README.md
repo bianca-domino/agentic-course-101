@@ -63,7 +63,7 @@ This lesson hires in-house so you see the whole path. Step 2 has the swap if you
 | Their phone number | `LLM_BASE_URL` |
 | The filing cabinet they may consult | `data/titanic.csv` |
 | The three lookups they're trained to do | the tools in `agent/core.py` |
-| The job brief pinned above the desk | `ai_system_config.yaml` |
+| The job brief pinned above the desk | `prompt.active` in `ai_system_config.yaml` |
 | The test paper with known answers | `data/sample_questions.csv` |
 | The marking scheme | `agent/evaluator.py` |
 | Sitting them down to take the test | `scripts/dev_eval.py`, run as a Job |
@@ -75,9 +75,9 @@ This lesson hires in-house so you see the whole path. Step 2 has the swap if you
 ### Two things the analogy makes obvious
 
 **Why the job brief is a separate file.** Rewriting the brief is not the same as hiring a different
-assistant. In Step 7 you change one line of `ai_system_config.yaml`, set the same test again, and
-compare the marks — same assistant, different instructions. That's why Domino logs the brief as
-parameters right next to the scores.
+assistant. In Step 7 you swap a vague brief for a specific one, set the same test again, and compare
+the marks — same assistant, better instructions. That's why Domino logs the brief as parameters
+right next to the scores.
 
 **Why the test matters.** Your assistant decides for themselves which drawer to open. That's what
 makes them useful, and it's also why you can't just assume they got it right. The test, the marking
@@ -132,6 +132,7 @@ like — the agent discovers the served name automatically in Step 3.
 - **Environment** → **Domino vLLM Environment**, which serves an OpenAI-compatible API.
 - **Hardware Tier** → a GPU tier with at least 16 GB of VRAM for this 7B model.
 - **Advanced → vLLM arguments** → add `--enable-auto-tool-choice` and `--tool-call-parser hermes`.
+  Optionally add `--served-model-name titanic-llm` to choose the name the endpoint answers to.
 - **Access** → add yourself, and anyone else who'll run the lesson.
 
 > [!IMPORTANT]
@@ -172,6 +173,11 @@ serves more than one model or you want the choice recorded in the config.
 
 If you do pin a name, the agent checks it against the endpoint first and falls back to what's
 actually served — with a message saying so — rather than failing with a 404.
+
+Served names are often not what you'd expect. A Domino endpoint commonly reports its model as `.`,
+the local path vLLM loaded it from, rather than the Hugging Face path or the name you registered.
+That's normal, and it's why the default is discovery rather than a name in the config. Add
+`--served-model-name <something>` in Step 2 if you'd rather it had a readable one.
 
 ## Step 4 — Try it
 
@@ -231,20 +237,34 @@ Go to **Experiments** and open the run. Each tab holds a different slice:
 Check question 10 — the off-topic one — and question 4, where the LLM has to pick `survival_rate`
 over `dataset_summary`.
 
-## Step 7 — Change one thing and compare
+## Step 7 — Improve the prompt and compare
 
-Open `ai_system_config.yaml`, change `temperature` from `0.1` to `0.9`, and save.
+Your first run used the `baseline` prompt in `ai_system_config.yaml`: a reasonable first draft that
+never mentions the tools. Now switch to the `improved` one, which tells the agent to look everything
+up, quote the figures it got back, and refuse questions outside the dataset. Change one line:
+
+```yaml
+prompt:
+  active: improved     # was: baseline
+```
 
 > [!IMPORTANT]
 > [Sync your changes](https://docs.domino.ai/cloud/platform-capabilities/core-concepts/workspaces/sync-changes-in-a-workspace#sync-all-changes)
 > before starting the next Job, or it will run the old code.
 
-Repeat Step 5, then in **Experiments** select both agent versions and click **Compare**. You'll see
-the aggregate metrics side by side; open the **Traces** comparison to see both configurations
-answering the same question, so you can tell not just which is better but why.
+Repeat Step 5, then in **Experiments** select both agent versions and click **Compare**. The
+improved prompt should score higher, and the comparison shows you where: answers that quote the
+real numbers rather than paraphrasing them, and question 10 declined instead of answered.
 
-That's the loop the platform is built around: change one thing, re-run the same test, see the
-difference before a user does.
+Open the **Traces** comparison to see both versions answering the same question side by side. That's
+the difference between knowing one version is better and knowing *why* — which is what you need
+before putting it in front of users.
+
+> [!NOTE]
+> Not every knob moves the needle. Re-running with `temperature` at 0.9 instead of 0.1 will likely
+> produce near-identical scores, because this task has one obvious tool per question and the
+> evaluator checks figures rather than phrasing. That's a useful result too: it tells you
+> temperature isn't where the quality lives for this agent, so don't spend your time there.
 
 ## Step 8 — Deploy the winner
 

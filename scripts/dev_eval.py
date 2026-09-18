@@ -16,6 +16,7 @@ from typing import Any, Dict
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import mlflow
 from domino.agents.tracing import add_tracing
 
 try:  # current SDK
@@ -23,7 +24,7 @@ try:  # current SDK
 except ImportError:  # older SDK
     from domino.agents.logging import DominoRun as DominoAgentContext
 
-from agent.core import run_agent
+from agent.core import _base_url, load_config, resolve_model_name, run_agent
 from agent.evaluator import score_answer
 
 CONFIG_PATH = str(ROOT / "ai_system_config.yaml")
@@ -67,6 +68,10 @@ def agent_context():
 
 def main() -> None:
     with agent_context():
+        # The YAML says "auto", so record which model actually answered.
+        mlflow.log_param("resolved_model", resolve_model_name(_base_url()))
+        mlflow.log_param("active_prompt", load_config()["prompt"].get("active"))
+
         with open(QUESTIONS_PATH, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 print(f"\n[{row['question_id']}] {row['question']}")
