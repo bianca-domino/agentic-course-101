@@ -13,7 +13,7 @@ model:
 
 prompt:
   # Which prompt below the agent uses. Switch to "improved" in Step 7 and re-run.
-  active: baseline
+  active: improved
 
   # A reasonable first draft. It never mentions the tools, so the model decides
   # for itself whether to look anything up.
