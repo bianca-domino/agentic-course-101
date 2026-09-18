@@ -69,7 +69,7 @@ project's **Code** page should now list the files above.
 > Those two vLLM arguments are what let the model call tools. Without them your agent has a brain
 > but no hands, and every answer is a guess.
 
-When the endpoint is running, copy the URL from its **Calling** tab.
+When the endpoint is running, copy the BASE_URL (in the **Code snippet** section) from the **Calling** tab.
 
 > [!NOTE]
 > Using an external provider such as OpenAI instead? Skip this step and use their base URL, key, and
@@ -79,7 +79,7 @@ When the endpoint is running, copy the URL from its **Calling** tab.
 
 ## Step 3 — Point the agent at the endpoint
 
-**Settings → Environment variables**, add `LLM_BASE_URL` with the URL you copied. That's usually the
+**Settings → Environment variables**, add `LLM_BASE_URL` with the BASE_URL you copied. That's usually the
 only one you need.
 
 - **No API key.** For a Domino-hosted endpoint, `agent/core.py` reads the token Domino serves at
@@ -89,12 +89,12 @@ only one you need.
   endpoint (`GET /v1/models`) and uses what it reports, which is what `name: auto` means in the
   config. Set `LLM_MODEL` only to pin a specific one.
 
-## Step 4 — Try it
+## Step 4 — Run the agent
 
 Launch a Workspace on the Domino Standard Environment, open a terminal:
 
 ```bash
-pip install -q --no-warn-conflicts -r requirements.txt
+pip install -r requirements.txt
 python agent/core.py
 ```
 
@@ -107,7 +107,7 @@ It prints the model it resolved, then four answers and one refusal. Use `python 
 
 ## Step 5 — Evaluate it as a Job
 
-**Run Job**, with `bash scripts/run_eval.sh` as the command.
+Click **Run Job**, with `bash scripts/run_eval.sh` as the command.
 
 All 10 questions in `data/sample_questions.csv` run, each becoming a trace scored by
 `agent/evaluator.py`: did it pick the right tool, does the answer contain the right figures, is it
@@ -144,7 +144,7 @@ prompt:
 > [Sync your changes](https://docs.domino.ai/cloud/platform-capabilities/core-concepts/workspaces/sync-changes-in-a-workspace#sync-all-changes)
 > before starting the next Job, or it runs the old code.
 
-Repeat Step 5, then select both agent versions in **Experiments** and click **Compare**. The improved
+Repeat Step 5, then select both agent versions in **Experiments** and click the **Compare** icon. The improved
 prompt should score higher; the **Traces** comparison shows both versions answering the same
 question side by side, so you can see *why* — figures quoted rather than recalled, and question 10
 declined instead of answered.
@@ -159,11 +159,12 @@ declined instead of answered.
 Open the better agent version → **Create Agent**, name it, set **Agent file** to `app.sh`. Then
 **Deployments → Apps & Agents** → select it → **Deploy** with a small hardware tier.
 
-Ask it a few questions. `app/server.py` uses the same tracing as the evaluation script, so live
+Click **View Agent** and ask it a few questions. `app/server.py` uses the same tracing as the evaluation script, so live
 conversations appear under **Monitoring**, alongside **Usage** and **Performance**.
 
-**Clean up:** stop the agent, your Workspace, and the model endpoint — the endpoint holds a GPU
-while it runs.
+> [!IMPORTANT]
+> **Clean up:** stop the agent, your Workspace, and the model endpoint — the endpoint holds a GPU
+> while it runs.
 
 ---
 
