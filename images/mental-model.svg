@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 660" width="1040" height="660" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .bg { fill: #ffffff; }
+    .title { font-size: 21px; font-weight: bold; fill: #16202e; }
+    .subtitle { font-size: 13px; fill: #5b6b7f; }
+    .zone { fill: none; stroke: #9bb0c9; stroke-width: 2; stroke-dasharray: 8 6; }
+    .zonelabel { font-size: 13px; font-weight: bold; fill: #4a6180; letter-spacing: .06em; }
+    .card { fill: #f2f6fb; stroke: #c6d6e8; stroke-width: 1.5; }
+    .paper { fill: #fffdf4; stroke: #d9cfa6; stroke-width: 1.5; }
+    .person { fill: #dce9f8; stroke: #2b6cb0; stroke-width: 2; }
+    .analogy { font-size: 15px; font-weight: bold; fill: #16202e; }
+    .tech { font-size: 12.5px; fill: #2b6cb0; font-family: "SFMono-Regular", Consolas, monospace; }
+    .note { font-size: 12px; fill: #6b7a8d; }
+    .line { stroke: #2b6cb0; stroke-width: 2; fill: none; }
+    .linelabel { font-size: 12px; fill: #2b6cb0; }
+    .item { font-size: 12.5px; fill: #2c3a4b; }
+  </style>
+
+  <rect class="bg" x="0" y="0" width="1040" height="660"/>
+
+  <text class="title" x="32" y="40">Your new research assistant</text>
+  <text class="subtitle" x="32" y="63">Every piece of this lesson, and the technical name for it</text>
+
+  <!-- ============ LEFT: the LLM, hosted at an endpoint ============ -->
+  <rect class="zone" x="32" y="90" width="330" height="346" rx="14"/>
+  <text class="zonelabel" x="48" y="116">HOSTED SEPARATELY</text>
+
+  <!-- person -->
+  <circle class="person" cx="197" cy="168" r="30"/>
+  <path class="person" d="M147 252 a50 46 0 0 1 100 0 z"/>
+  <text class="analogy" x="197" y="282" text-anchor="middle">The assistant</text>
+  <text class="tech" x="197" y="300" text-anchor="middle">the LLM, also called the model</text>
+  <text class="note" x="197" y="318" text-anchor="middle">Reads and reasons. Knows nothing about your job.</text>
+  
+
+  <!-- phone / endpoint -->
+  <rect class="card" x="52" y="332" width="290" height="86" rx="10"/>
+  <text class="analogy" x="197" y="356" text-anchor="middle">Their desk and phone number</text>
+  <text class="tech" x="197" y="376" text-anchor="middle">the endpoint (LLM_BASE_URL)</text>
+  <text class="note" x="197" y="398" text-anchor="middle">Registering a model = a CV on file.</text>
+  <text class="note" x="197" y="412" text-anchor="middle">An endpoint = hired, running, reachable.</text>
+
+  <!-- call line between agent and assistant -->
+  <path class="line" d="M424 192 H 366" marker-end="url(#arrowback)"/>
+  <path class="line" d="M366 224 H 424" marker-end="url(#arrow)"/>
+  <text class="linelabel" x="395" y="184" text-anchor="middle">asks</text>
+  <text class="linelabel" x="395" y="244" text-anchor="middle">answers</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#2b6cb0"/>
+    </marker>
+    <marker id="arrowback" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#2b6cb0"/>
+    </marker>
+  </defs>
+
+  <!-- ============ RIGHT: the agent ============ -->
+  <rect class="zone" x="424" y="90" width="584" height="346" rx="14" stroke="#2b6cb0"/>
+  <text class="zonelabel" x="440" y="116" fill="#2b6cb0">THE AGENT — THE ASSISTANT PLUS EVERYTHING YOU SET UP</text>
+
+  <!-- job brief -->
+  <rect class="paper" x="444" y="134" width="256" height="90" rx="8"/>
+  <text class="analogy" x="460" y="160">The job brief on the wall</text>
+  <text class="tech" x="460" y="180">ai_system_config.yaml</text>
+  <text class="item" x="460" y="202">"Always look it up. Two sentences.</text>
+  <text class="item" x="460" y="218">Don't answer off-topic questions."</text>
+
+  <!-- filing cabinet -->
+  <rect class="card" x="724" y="134" width="264" height="90" rx="8"/>
+  <text class="analogy" x="740" y="160">The filing cabinet</text>
+  <text class="tech" x="740" y="180">data/titanic.csv</text>
+  <text class="item" x="740" y="206">891 passenger records — the only</text>
+  <text class="item" x="740" y="222">source they may use.</text>
+
+  <!-- tools -->
+  <rect class="card" x="444" y="244" width="544" height="106" rx="8"/>
+  <text class="analogy" x="460" y="270">The three lookups they may perform</text>
+  <text class="tech" x="460" y="290">the tools in agent/core.py</text>
+  <rect class="paper" x="460" y="302" width="160" height="34" rx="6"/>
+  <text class="item" x="540" y="324" text-anchor="middle">dataset_summary()</text>
+  <rect class="paper" x="636" y="302" width="160" height="34" rx="6"/>
+  <text class="item" x="716" y="324" text-anchor="middle">survival_rate()</text>
+  <rect class="paper" x="812" y="302" width="160" height="34" rx="6"/>
+  <text class="item" x="892" y="324" text-anchor="middle">find_passenger()</text>
+
+  <text class="note" x="444" y="378">The assistant decides which lookup a question needs. You never write that rule.</text>
+  <text class="note" x="444" y="398">Together, the assistant + brief + cabinet + lookups are what Domino calls an agent.</text>
+
+  <!-- ============ BOTTOM: test, working, front desk ============ -->
+  <text class="zonelabel" x="32" y="474" fill="#4a6180">BEFORE AND AFTER THEY START WORK</text>
+  <rect class="paper" x="32" y="500" width="300" height="128" rx="10"/>
+  <text class="analogy" x="48" y="528">The test, and the marking scheme</text>
+  <text class="tech" x="48" y="548">data/sample_questions.csv</text>
+  <text class="tech" x="48" y="566">agent/evaluator.py</text>
+  <text class="item" x="48" y="590">10 questions you already know the</text>
+  <text class="item" x="48" y="606">answers to, and how they're scored.</text>
+
+  <rect class="card" x="356" y="500" width="300" height="128" rx="10"/>
+  <text class="analogy" x="372" y="528">Their shown working</text>
+  <text class="tech" x="372" y="548">a trace, in the Traces tab</text>
+  <text class="item" x="372" y="572">Which lookup they opened, what it</text>
+  <text class="item" x="372" y="588">returned, what they answered —</text>
+  <text class="item" x="372" y="604">for every single question.</text>
+
+  <rect class="card" x="680" y="500" width="328" height="128" rx="10"/>
+  <text class="analogy" x="696" y="528">Putting them on the front desk</text>
+  <text class="tech" x="696" y="548">the deployed agent (app.sh)</text>
+  <text class="item" x="696" y="572">Real visitors, real questions — and</text>
+  <text class="item" x="696" y="588">you keep reading the working notes</text>
+  <text class="item" x="696" y="604">in the Monitoring tab.</text>
+
+  <!-- flow arrows along the bottom -->
+  <path class="line" d="M332 564 H 352" marker-end="url(#arrow)"/>
+  <path class="line" d="M656 564 H 676" marker-end="url(#arrow)"/>
+</svg>
