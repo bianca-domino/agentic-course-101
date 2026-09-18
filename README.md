@@ -124,7 +124,8 @@ Two parts: register the model, then deploy it as an endpoint. You need **Project
 permissions.
 
 **Register it.** Go to **Models → Register → Gen AI model**. Choose **Hugging Face** as the source,
-set the path to `Qwen/Qwen2.5-7B-Instruct`, set Type to **LLM**, and create.
+set the path to `Qwen/Qwen2.5-7B-Instruct`, set Type to **LLM**, and create. Name it whatever you
+like — the agent discovers the served name automatically in Step 3.
 
 **Deploy it.** From the registered model's **Endpoints** tab, click **Create endpoint**, then:
 
@@ -155,11 +156,19 @@ In **Settings → Environment variables**, add:
 | Name | Value |
 | --- | --- |
 | `LLM_BASE_URL` | The URL from the endpoint's **Calling** tab |
-| `LLM_MODEL` | `Qwen/Qwen2.5-7B-Instruct` |
 | `LLM_API_KEY` | External providers only. For a Domino-hosted endpoint, leave it out |
+| `LLM_MODEL` | Optional. Only needed to pin a specific model — see below |
 
-For a Domino-hosted endpoint there's no key to manage: `agent/core.py` picks up the access token
-that Domino serves at `http://localhost:8899/access-token` inside every Workspace, Job, and App.
+That's usually the only variable you need.
+
+**No key to manage.** For a Domino-hosted endpoint, `agent/core.py` picks up the access token that
+Domino serves at `http://localhost:8899/access-token` inside every Workspace, Job, and App.
+
+**No model name to look up.** An endpoint serves your model under the name you registered it with,
+which is rarely the Hugging Face path. Rather than make you match it by hand, the agent asks the
+endpoint (`GET /v1/models`) and uses what it reports. That's what `name: auto` means in
+`ai_system_config.yaml`. Set `LLM_MODEL`, or replace `auto` with an exact name, when an endpoint
+serves more than one model or you want the choice recorded in the config.
 
 ## Step 4 — Try it
 
@@ -169,6 +178,8 @@ Launch a Workspace on the Domino Standard Environment, open a terminal, and run:
 pip install -q --no-warn-conflicts -r requirements.txt
 python agent/core.py
 ```
+
+It prints the model it resolved, then four answers and one refusal.
 
 > [!NOTE]
 > Pip may print `ERROR: pip's dependency resolver...` listing packages like `langchain-community`
@@ -280,7 +291,8 @@ external provider looks the same in the Experiment Manager as a Domino-hosted on
 | Hugging Face model missing from the list | Some models need their licence accepted on Hugging Face first |
 | Endpoint stuck on "Starting" | The hardware tier is too small for the model. Check the endpoint logs and pick a tier with more VRAM |
 | `LLM_BASE_URL is not set` | Add the Step 3 variables, then restart the Workspace so they load |
-| 401 or 404 from the endpoint | Check the URL came from the **Calling** tab and `LLM_MODEL` matches the model the endpoint serves |
+| `404 — The model 'X' does not exist` | `LLM_MODEL` (or `model.name`) doesn't match what the endpoint serves. Clear it to let the agent auto-discover, or run `python -c "import sys; sys.path.insert(0,'.'); from agent.core import *; print(list_endpoint_models(_base_url()))"` to see the real name |
+| 401 from the endpoint | Check the URL came from the **Calling** tab and that you have access to the endpoint |
 | The agent answers without calling a tool | The vLLM tool-calling arguments are missing — see Step 2 |
 | No run in the Experiment Manager | The script ran from a terminal. Run it as a Job |
 | Pip prints dependency-resolver errors | Pre-existing DSE conflicts, unrelated to this agent. Check the install worked with `python -c "import pydantic_ai"` |

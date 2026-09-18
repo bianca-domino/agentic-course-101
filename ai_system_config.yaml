@@ -5,8 +5,9 @@ agent_name: titanic-agent
 agent_version: v1
 
 model:
-  # Overridden by the LLM_MODEL environment variable if it is set.
-  name: Qwen/Qwen2.5-7B-Instruct
+  # "auto" asks the endpoint which model it serves. Replace with an exact name,
+  # or set the LLM_MODEL environment variable, to pin it.
+  name: auto
   temperature: 0.1
   max_tokens: 400
 

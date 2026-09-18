@@ -111,20 +111,63 @@ def _api_key() -> str:
         return os.environ.get("DOMINO_USER_API_KEY", "EMPTY")
 
 
+def _base_url() -> str:
+    base_url = os.environ.get("LLM_BASE_URL")
+    if not base_url:
+        raise RuntimeError("LLM_BASE_URL is not set — see README step 3.")
+    return base_url.rstrip("/")
+
+
+def list_endpoint_models(base_url: str) -> list:
+    """Ask the endpoint which models it serves (every OpenAI-compatible API has this)."""
+    response = requests.get(
+        f"{base_url}/models",
+        headers={"Authorization": f"Bearer {_api_key()}"},
+        timeout=15,
+    )
+    response.raise_for_status()
+    return [m["id"] for m in response.json().get("data", [])]
+
+
+@lru_cache(maxsize=1)
+def resolve_model_name(base_url: str) -> str:
+    """Work out which model name to send.
+
+    An endpoint serves the model under the name it was registered with, which is
+    rarely the Hugging Face path — so by default we ask the endpoint instead of
+    guessing. Set LLM_MODEL, or model.name in the YAML, to pin it explicitly.
+    """
+    explicit = os.environ.get("LLM_MODEL") or load_config()["model"].get("name")
+    if explicit and explicit != "auto":
+        return explicit
+
+    try:
+        served = list_endpoint_models(base_url)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not ask {base_url}/models which model to use ({exc}). "
+            "Set the LLM_MODEL environment variable to the name you registered."
+        ) from exc
+
+    if not served:
+        raise RuntimeError(f"{base_url} reports no available models. Is the endpoint running?")
+    if len(served) > 1:
+        print(f"[agent] endpoint serves {served}; using '{served[0]}'. Set LLM_MODEL to choose.")
+    return served[0]
+
+
 @lru_cache(maxsize=1)
 def create_agent() -> Agent:
     """Build the agent from ai_system_config.yaml plus the LLM_* environment variables."""
     config = load_config()
 
-    base_url = os.environ.get("LLM_BASE_URL")
-    if not base_url:
-        raise RuntimeError("LLM_BASE_URL is not set — see README step 3.")
-    model_name = os.environ.get("LLM_MODEL") or config["model"]["name"]
+    base_url = _base_url()
+    model_name = resolve_model_name(base_url)
 
     agent = Agent(
         OpenAIModel(
             model_name,
-            provider=OpenAIProvider(base_url=base_url.rstrip("/"), api_key=_api_key()),
+            provider=OpenAIProvider(base_url=base_url, api_key=_api_key()),
         ),
         system_prompt=config["prompt"]["system"],
         model_settings={
@@ -156,6 +199,7 @@ def run_agent(question: str) -> dict:
 
 
 if __name__ == "__main__":
+    print(f"Using model: {resolve_model_name(_base_url())}\n")
     for q in [
         "What was the survival rate for women compared to men?",
         "How many passengers are in the dataset?",
