@@ -1,4 +1,7 @@
 # Installed at startup by scripts/run_eval.sh and app.sh.
-# For production, bake these into a Domino environment instead.
-pydantic-ai
-requests
+# For production, bake these into a Domino environment instead (see README).
+#
+# pydantic-ai-slim[openai] is the minimal install: the OpenAI-compatible client
+# only, without the other model providers and dev tooling the full pydantic-ai
+# package pulls in. Fewer packages, fewer collisions with the DSE.
+pydantic-ai-slim[openai]>=0.4

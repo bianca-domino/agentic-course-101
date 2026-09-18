@@ -92,7 +92,7 @@ scheme, and the shown working are how you find out — before a visitor does.
 ├── README.md
 ├── app.sh                       # App command Domino runs to launch the agent
 ├── ai_system_config.yaml        # model, prompt, settings — logged as parameters on every run
-├── requirements.txt             # pydantic-ai, installed at startup
+├── requirements.txt             # pydantic-ai-slim, installed at startup
 ├── agent/
 │   ├── __init__.py
 │   ├── core.py                  # the agent: LLM connection and three tools
@@ -166,9 +166,15 @@ that Domino serves at `http://localhost:8899/access-token` inside every Workspac
 Launch a Workspace on the Domino Standard Environment, open a terminal, and run:
 
 ```bash
-pip install -q -r requirements.txt
+pip install -q --no-warn-conflicts -r requirements.txt
 python agent/core.py
 ```
+
+> [!NOTE]
+> Pip may print `ERROR: pip's dependency resolver...` listing packages like `langchain-community`
+> or `snowflake-connector-python`. Those conflicts already exist in the Domino Standard Environment
+> and have nothing to do with this agent — the install still succeeded. Confirm with
+> `python -c "import pydantic_ai; print(pydantic_ai.__version__)"`.
 
 Four questions, and one off-topic question it should decline. Each answer prints the tool the LLM
 chose. Open `agent/core.py` — the three tools are plain Python functions, and their docstrings are
@@ -254,6 +260,9 @@ with DominoAgentContext(agent_config_path="ai_system_config.yaml"):
 framework makes — then runs `judge` on the result. `DominoAgentContext` groups those traces into one
 comparable agent version and logs your YAML config as its parameters.
 
+To avoid the startup install altogether, add `RUN pip install "pydantic-ai-slim[openai]"` to a
+compute environment's Dockerfile instructions and select that environment for the Job and the App.
+
 This lesson uses Pydantic AI, but Domino auto-instruments any MLflow-supported framework: LangChain,
 OpenAI Agents SDK, LlamaIndex, and others. Traces are captured wherever the model is hosted, so an
 external provider looks the same in the Experiment Manager as a Domino-hosted one.
@@ -274,6 +283,7 @@ external provider looks the same in the Experiment Manager as a Domino-hosted on
 | 401 or 404 from the endpoint | Check the URL came from the **Calling** tab and `LLM_MODEL` matches the model the endpoint serves |
 | The agent answers without calling a tool | The vLLM tool-calling arguments are missing — see Step 2 |
 | No run in the Experiment Manager | The script ran from a terminal. Run it as a Job |
+| Pip prints dependency-resolver errors | Pre-existing DSE conflicts, unrelated to this agent. Check the install worked with `python -c "import pydantic_ai"` |
 | `ModuleNotFoundError: domino.agents` | Your environment predates Domino 6.2. Add `RUN pip install "dominodatalab[agents]"` to its Dockerfile instructions and rebuild |
 
 ## Docs
