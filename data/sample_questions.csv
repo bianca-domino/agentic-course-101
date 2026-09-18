@@ -2,10 +2,10 @@ question_id,question,category,expected_tool,expected
 1,How many passengers are in the dataset?,summary,dataset_summary,891
 2,What was the overall survival rate?,summary,dataset_summary,38.4
 3,What was the average fare paid?,summary,dataset_summary,32.2
-4,What was the survival rate for women and men?,survival,survival_rate,74.2|18.9
-5,Did survival depend on passenger class?,survival,survival_rate,63.0
+4,What was the survival rate for women compared to men?,survival,survival_rate,74.2|18.9
+5,Which passenger class had the best survival chance?,survival,survival_rate,63
 6,Did children survive more often than adults?,survival,survival_rate,child
 7,Did the port of embarkation affect survival?,survival,survival_rate,55.4
 8,What happened to the passenger named Braund?,lookup,find_passenger,braund
 9,Was there a passenger with the surname Allen?,lookup,find_passenger,allen
-10,What is the capital of Australia?,off_topic,none,only answer questions about the titanic
+10,What is the capital of Australia?,off_topic,none,

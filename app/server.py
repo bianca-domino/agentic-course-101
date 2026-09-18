@@ -21,7 +21,7 @@ init_tracing()
 app = Flask(__name__)
 
 
-@add_tracing(name="titanic_question")
+@add_tracing(name="titanic_question", autolog_frameworks=["pydantic_ai"])
 def answer_question(data_point: dict) -> dict:
     return run_agent(data_point["question"])
 

@@ -1,6 +1,3 @@
-# Everything here is already in the Domino Standard Environment.
-# Listed for reference and for running the agent outside Domino.
-pandas
-pyyaml
-mlflow
-flask
+# Installed at startup by scripts/run_eval.sh and app.sh.
+# For production, bake these into a Domino environment instead.
+pydantic-ai

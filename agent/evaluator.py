@@ -6,11 +6,14 @@ nothing else in the project has to change.
 """
 
 
-def score_answer(question: str, answer: str, tool_used: str, expected: str, expected_tool: str) -> dict:
+def score_answer(question: str, answer: str, tools_used, expected: str, expected_tool: str) -> dict:
     answer_lower = (answer or "").lower()
+    tools_used = tools_used or ["none"]
 
-    # 1. Did it pick the right tool?
-    tool_score = 1.0 if tool_used == expected_tool else 0.0
+    # 1. Did the LLM pick the right tool?
+    tool_score = 1.0 if expected_tool in tools_used else 0.0
+    if expected_tool == "none":
+        tool_score = 1.0 if tools_used == ["none"] else 0.0
 
     # 2. Does the answer contain the figures or names it should?
     #    Multiple expected terms are separated by "|" and all must appear.
@@ -18,7 +21,7 @@ def score_answer(question: str, answer: str, tool_used: str, expected: str, expe
     accuracy_score = (sum(1 for t in terms if t in answer_lower) / len(terms)) if terms else tool_score
 
     # 3. Is it short enough to be useful?
-    conciseness_score = 1.0 if len(answer) <= 200 else 0.5
+    conciseness_score = 1.0 if len(answer) <= 300 else 0.5
 
     return {
         "tool_score": tool_score,

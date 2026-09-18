@@ -1,19 +1,15 @@
 # Lesson 1 — Build your first agent in Domino
 
-Build, trace, evaluate, compare, and deploy a working agent in under 10 minutes.
+Connect an LLM, give it tools, evaluate it, and deploy it — in under 10 minutes.
 
-**No LLM, no API key, no environment build.** Everything this lesson needs is already in the
-Domino Standard Environment. The point of Lesson 1 is the Domino workflow — traces, agent versions,
-comparison, deployment — not prompt engineering. Once that clicks, swapping in an LLM is a
-one-function change (see [Add an LLM](#add-an-llm) at the end).
-
-The agent answers questions about the Titanic passenger dataset. It does what every agent does:
-**plans** which tool a question needs, **calls** that tool, then turns the result into an answer.
+The agent answers questions about the Titanic passenger dataset. The LLM reads each question,
+decides which tool to call, and writes the answer from what the tool returned. Domino traces every
+step, scores every answer, and deploys the exact version you evaluated.
 
 ```
-question ──> plan ──> survival_rate("sex") ──> "Survival rate by sex — female: 74.2%, male: 18.9%."
-                      dataset_summary()
-                      find_passenger("Braund")
+question ──> LLM decides ──> survival_rate("sex") ──> "Women survived at 74.2%, men at 18.9%."
+                             dataset_summary()
+                             find_passenger("Braund")
 ```
 
 ---
@@ -24,9 +20,9 @@ Imagine you've hired an assistant to answer questions about the Titanic passenge
 new, so they can't do anything you haven't set up for them.
 
 You give them **one filing cabinet** — the passenger records, and nothing else. You pin **a short
-job brief** above their desk: answer in this style, round to one decimal, don't wander off topic.
-You teach them **three specific lookups** they're allowed to perform, and you pin **a flowchart** to
-the wall telling them which lookup matches which kind of question.
+job brief** above their desk: always look it up, never guess, keep it to two sentences, don't wander
+off topic. You teach them **three specific lookups** they're allowed to perform, and you leave it to
+them to judge which lookup a question calls for.
 
 Before you let them near a real visitor, you give them **a test with a marking scheme**: ten
 questions you already know the answers to. And you ask them to **show their working** on every one —
@@ -39,9 +35,9 @@ working notes while they're out there.
 
 | The analogy | In the repo |
 | --- | --- |
+| The assistant themselves | the LLM you connect in Step 2 |
 | The filing cabinet they may consult | `data/titanic.csv` |
 | The three lookups they're trained to do | the tools in `agent/core.py` |
-| The flowchart for choosing a lookup | `plan()` in `agent/core.py` |
 | The job brief pinned above the desk | `ai_system_config.yaml` |
 | The test paper with known answers | `data/sample_questions.csv` |
 | The marking scheme | `agent/evaluator.py` |
@@ -53,16 +49,14 @@ working notes while they're out there.
 
 ### Two things the analogy makes obvious
 
-**Why the job brief is a separate file.** Rewriting the brief is not the same as retraining the
-assistant. In Step 5 you change one line of `ai_system_config.yaml`, give the same test again, and
+**Why the job brief is a separate file.** Rewriting the brief is not the same as hiring a different
+assistant. In Step 6 you change one line of `ai_system_config.yaml`, set the same test again, and
 compare the marks — same assistant, different instructions. That's why Domino logs the brief as
 parameters right next to the scores.
 
-**Why there's no LLM yet.** Right now your assistant follows a flowchart. They're reliable and they
-never improvise, but they can only handle questions the flowchart anticipated. Adding an LLM is
-hiring someone who reads the question and decides for themselves which drawer to open — more
-capable, less predictable, and exactly why the test, the marking scheme, and the shown working
-matter more once you do it.
+**Why the test matters.** Your assistant decides for themselves which drawer to open. That's what
+makes them useful, and it's also why you can't just assume they got it right. The test, the marking
+scheme, and the shown working are how you find out — before a visitor does.
 
 ---
 
@@ -72,122 +66,131 @@ matter more once you do it.
 .
 ├── README.md
 ├── app.sh                       # App command Domino runs to launch the agent
-├── ai_system_config.yaml        # agent settings, logged as parameters on every run
-├── requirements.txt             # reference only — all of it ships in the DSE
+├── ai_system_config.yaml        # model, prompt, settings — logged as parameters on every run
+├── requirements.txt             # pydantic-ai, installed at startup
 ├── agent/
 │   ├── __init__.py
-│   ├── core.py                  # the agent: planner, three tools, answer formatting
-│   └── evaluator.py             # scores each answer (deterministic, no LLM judge)
+│   ├── core.py                  # the agent: LLM connection and three tools
+│   └── evaluator.py             # scores each answer
 ├── app/
 │   └── server.py                # Flask chat UI for the deployed agent
 ├── scripts/
-│   └── dev_eval.py              # batch evaluation — the script you run as a Job
+│   ├── dev_eval.py              # batch evaluation over the test questions
+│   └── run_eval.sh              # Job command: installs deps, runs dev_eval.py
 └── data/
     ├── titanic.csv              # the dataset (891 passengers)
     └── sample_questions.csv     # 10 test questions with expected tool and answer
 ```
 
-Every path in the code resolves from the project root, so the scripts run the same from a Workspace
-terminal, a Job, or the App.
+Every path resolves from the project root, so the scripts behave the same in a Workspace, a Job, or
+the App.
 
 ---
 
-## Step 1 — Create the project (2 min)
+## Step 1 — Create the project
 
-**Projects → Create Project** → Choose a Git-based project → Click **Input URL**, then paste this repo's URL and create your project. (Or create a blank project and upload these files.)
+**Projects → Create Project → Git-based → Input URL**, paste this repo's URL, and create.
 
-That's the whole setup. No environment variables, no endpoint, no credentials.
+Check the project's **Code** page to confirm the files imported.
 
-You can verify that all the files imported successfully from this repo by checking your Project **Code** page.
+## Step 2 — Connect an LLM
 
-## Step 2 — Try the agent (1 min)
+Go to **Settings → Environment variables** and add the following variables:
 
-Launch a Workspace with the IDE of your choice and use the default Domino Standard Environment. Once the Workspace is running, open a new terminal and run:
+| Name | Value |
+| --- | --- |
+| `LLM_BASE_URL` | Your endpoint URL, ending in `/v1` |
+| `LLM_API_KEY` | Your provider key — for a Domino-hosted endpoint, your Domino user API key |
+| `LLM_MODEL` | The model the endpoint serves, e.g. `Qwen/Qwen2.5-7B-Instruct` or `gpt-4o-mini` |
+
+Any OpenAI-compatible endpoint works. To host the model in Domino instead, register it under
+**Develop → Models → Register → Gen AI model**, deploy it under **Models → Endpoints**, and copy the
+`BASE_URL` from the endpoint's **Calling** tab.
+
+> [!IMPORTANT]
+> The endpoint must support **tool calling**, or the agent can't reach its tools. On a
+> Domino-hosted endpoint, add the vLLM arguments `--enable-auto-tool-choice` and
+> `--tool-call-parser hermes` on the endpoint's **Advanced** tab.
+
+## Step 3 — Try the agent
+
+Launch a Workspace on the Domino Standard Environment, open a terminal, and run:
 
 ```bash
+pip install -q -r requirements.txt
 python agent/core.py
 ```
 
-You'll see it answer four questions and decline an off-topic one. Have a look at `agent/core.py` —
-it's three tools, a planner, and an answer formatter, all in one file.
+Four questions, and one off-topic question it should decline. Each answer prints the tool the LLM
+chose. Open `agent/core.py` — the three tools are plain Python functions, and their docstrings are
+what the LLM reads to decide when to call them.
 
-## Step 3 — Run the evaluation as a Job (2 min)
+## Step 4 — Evaluate it as a Job
 
-You can run a Job interactively in the UI, from the CLI, or from Domino API (see [Create and run Jobs](https://docs.domino.ai/6.3/platform-capabilities/core-concepts/jobs/create-and-run-jobs) for detailed steps for each option). To keep things simple, let's run it in the UI.
-
-In your running Workspace, click **Run Job** and paste the following path to the `dev_eval.py` script in the **File Name or Command** field:
+In your Workspace, click **Run Job**, put this in **File Name or Command**, and click **Start**:
 
 ```
-scripts/dev_eval.py
+bash scripts/run_eval.sh
 ```
 
-Click **Start** to run the agent over the 10 questions in `data/sample_questions.csv`. Each question becomes its own
-trace with evaluation scores attached.
+This runs teh agent over all 10 questions in `data/sample_questions.csv`. Each becomes its own trace, scored by
+`agent/evaluator.py` on three metrics: did the LLM pick the right tool, does the answer contain the
+right figures, and is it concise.
 
 > [!IMPORTANT]
-> Run it as a **Job**, not from the Workspace terminal. That's what creates a deployable agent
-> version with lineage back to the exact commit and config.
+> Run it as a **Job**, not from the terminal. Only Job runs create a deployable agent version with
+> lineage back to the exact commit and config.
 
-Each time you run an evaluation script as a Domino Job, it creates an agent version containing traces and evaluation scores for that configuration.
+## Step 5 — Review what you captured
 
-## Step 4 — Look at what you captured (2 min)
+Go to **Experiments** and open the run. Each tab holds a different slice:
 
-You can view and analyze traces from any agent version by navigating to **Experiments** in the left nav of your Project and clicking into the run you just created. Click through the tabs to see what each tab holds for this run:
+- **Overview** → who ran it, when, on what hardware, and from which Git commit.
+- **Parameters** → your `ai_system_config.yaml`, so you know which configuration produced these numbers.
+- **Metrics** → mean tool accuracy, answer accuracy, and overall score across all 10 questions.
+- **Traces** → one row per question. Open one to see the span tree: the LLM's tool choice, the tool
+  call with its arguments and result, the final answer, plus tokens, latency, and cost.
+- **Outputs** → artifacts the run produced.
+- **Logs** → raw stdout and stderr, where you look when a run fails.
 
-- **Overview** → The run's identity and provenance: who ran it, when, how long it took, the hardware and environment, and the Git commit it came from.
-- **Parameters** → Everything from `ai_system_config.yaml`, so you always know which
-  configuration produced these numbers.
-- **Metrics** → Mean tool accuracy, answer accuracy, and overall score across all 10 questions.
-- **Traces** → Click a trace to see the span tree: `plan` (which tool it chose and why), the
-`<tool>` span with its arguments and return value, then `format_answer`. Plus latency for each step.
-- **Outputs** → Any artifacts the run produced.
-- **Logs** → The raw stdout and stderr from the Job, which is where you look when a run fails.
+Check question 10 — the off-topic one — and question 4, where the LLM has to pick `survival_rate`
+over `dataset_summary`.
 
-Question 10 is off-topic on purpose. Check that the agent declined it.
+## Step 6 — Change one thing and compare
 
-## Step 5 — Change one thing and compare (2 min)
-
-In your running Workspace, open `ai_system_config.yaml`, change `style` from `concise` to `detailed` and save.
+Open `ai_system_config.yaml`, change `temperature` from `0.1` to `0.9`, and save.
 
 > [!IMPORTANT]
-> You need to [sync all changes](https://docs.domino.ai/cloud/platform-capabilities/core-concepts/workspaces/sync-changes-in-a-workspace#sync-all-changes) before you can run the next Job.
+> [Sync your changes](https://docs.domino.ai/cloud/platform-capabilities/core-concepts/workspaces/sync-changes-in-a-workspace#sync-all-changes)
+> before starting the next Job, or it will run the old code.
 
-Repeat Step 3 to start a new Job with the updated configuration.
+Repeat Step 4, then in **Experiments** select both agent versions and click the **Compare** icon. You'll see
+the aggregate metrics side by side; open the **Traces** comparison to see both configurations
+answering the same question, so you can tell not just which is better but why.
 
-Once the Job has run successfully, navigate to **Experiments** and click into the experiment. Select both agent versions and click the **Compare** icon (it looks like two overlapping squares).
+That's the loop the platform is built around: change one thing, re-run the same test, see the
+difference before a user does.
 
-Scroll down to see a side-by-side comparison of the two agent versions: Mean overall score goes from **0.96** to **0.99** — the detailed answers include the average fare,
-which question 3 asks for. That's the loop the whole platform is built around: change one thing,
-re-run the same dataset, see the difference before a user does.
+## Step 7 — Deploy the winner
 
-> [!NOTE]
-> If you compare Jobs in the **Jobs** dashboard, it will show differences in summary metadata and diagnostic statistics. If you compare Jobs in the **Experiments** view, you're comparing logged experiment runs rather than raw Job outputs, which is useful for seeing how configuration changes affected performance.
+Open the better agent version, click **Create Agent**, name it, set **Agent file** to `app.sh`, and
+create. Then go to **Deployments → Apps & Agents**, select it, click **Deploy**, pick a small
+hardware tier, and deploy. Once the agent is ready, click **View Agent**. Ask it a few questions.
 
-## Step 6 — Deploy your agent (1 min)
+`app/server.py` uses the same `@add_tracing` decorator as the evaluation
+script, so production conversations are traced too — watch them arrive under **Deployments → Apps & Agents** → **Monitoring** tab, alongside **Usage** and **Performance**.
 
-Click the agent version that had the best metrics, then click **Create Agent**. Specify an agent name, set the **Agent file** to `app.sh` and click **Create Agent**. To deploy your agent, navigate to **Deployments → Apps & Agents**, select your agent, then click **Deploy**. Customize the URL ending of your agent if you want to, then select a small hardware tier and click **Deploy Agent version**.  This deploys your agent as a chat page. Once the agent has deployed successfully, you can view your agent either by clicking **View Agent**.
-
-Ask your agent a couple of questions about the Titanic set then check the **Usage** and **Performance** of your agent by navigating to your agent in **Deployments → Apps & Agents**.
-
-`app/server.py` uses the same `@add_tracing` decorator, so live questions are traced too.  Select the **Monitoring** tab to watch them arrive as you ask your agent more questions.
-
-## Step 7 — Stop your agent and Workspace (1 min)
-
-To stop your agent, go to **Deployments → Apps & Agents**, click the breadcrumbs and select **Stop**. Also make sure to stop your Workspace, which you can do directly in your running Workspace, or from the **Workspaces** page.
+**Clean up:** stop the agent from **Deployments → Apps & Agents**, and stop your Workspace.
 
 ---
 
 ## How the tracing works
 
-Two decorators, and that's it.
+One decorator and one context manager.
 
 ```python
-# agent/core.py — each tool becomes a TOOL span inside the trace
-@mlflow.trace(span_type="TOOL", name="survival_rate")
-def survival_rate(group_by): ...
-
-# scripts/dev_eval.py — the top-level call becomes the trace, everything nests inside it
-@add_tracing(name="titanic_question", evaluator=judge)
+# scripts/dev_eval.py
+@add_tracing(name="titanic_question", autolog_frameworks=["pydantic_ai"], evaluator=judge)
 def answer_question(data_point):
     return run_agent(data_point["question"])
 
@@ -196,28 +199,12 @@ with DominoAgentContext(agent_config_path="ai_system_config.yaml"):
         answer_question(row)
 ```
 
-`@add_tracing` captures the call and everything beneath it, then runs `judge` on the result.
-`DominoAgentContext` groups those traces into one comparable agent version and logs your YAML
-config alongside them.
+`@add_tracing` captures the call and everything beneath it — including every LLM and tool call the
+framework makes — then runs `judge` on the result. `DominoAgentContext` groups those traces into one
+comparable agent version and logs your YAML config as its parameters.
 
-## Add an LLM
-
-The planner is keyword rules so this lesson runs anywhere. To make the agent decide for itself,
-replace one function — `plan()` in `agent/core.py` — with an LLM call, and set `planner.mode: llm`
-in the config. Nothing else changes: same tools, same tracing, same evaluation, same deployment.
-
-With a framework like Pydantic AI, the agent and its tools replace the planner outright, and you
-tell `@add_tracing` to auto-instrument it:
-
-```python
-@add_tracing(name="titanic_question", autolog_frameworks=["pydantic_ai"], evaluator=judge)
-def answer_question(data_point):
-    return {"answer": create_agent().run_sync(data_point["question"]).output}
-```
-
-Domino auto-instruments any MLflow-supported framework — LangChain, Pydantic AI, OpenAI Agents SDK,
-LlamaIndex, and others. The LLM itself can be an external provider or one you host in Domino
-(**Models → Endpoints**); see [Set up LLM access](https://docs.domino.ai/cloud/platform-capabilities/features/llms).
+This lesson uses Pydantic AI, but Domino auto-instruments any MLflow-supported framework: LangChain,
+OpenAI Agents SDK, LlamaIndex, and others. Swap the framework, keep the same two lines.
 
 ## Coming up
 
@@ -229,15 +216,15 @@ LlamaIndex, and others. The LLM itself can be an external provider or one you ho
 
 | Symptom | Fix |
 | --- | --- |
-| No run appears in the Experiment Manager | The script was run from a Workspace terminal. Run it as a Job |
-| `ModuleNotFoundError: agent` | Make sure `agent/__init__.py` exists — it's what makes `agent` an importable package |
-| `ModuleNotFoundError: domino.agents` | Your environment predates Domino 6.2. Add `RUN pip install "dominodatalab[agents]"` to the environment's Dockerfile instructions and rebuild |
-| The app won't start | Check the App command is `app.sh` and that the hardware tier has at least 1 GB of memory |
+| `LLM_BASE_URL is not set` | Add the Step 2 variables, then restart the Workspace so they load |
+| 401 or 404 from the endpoint | Check the URL ends in `/v1` and `LLM_MODEL` matches a model the endpoint serves |
+| The agent answers without calling a tool | Tool calling isn't enabled on the endpoint — see the note in Step 2 |
+| No run in the Experiment Manager | The script ran from a terminal. Run it as a Job |
+| `ModuleNotFoundError: domino.agents` | Your environment predates Domino 6.2. Add `RUN pip install "dominodatalab[agents]"` to its Dockerfile instructions and rebuild |
 
 ## Docs
 
 - [Agents in Domino](https://docs.domino.ai/cloud/platform-capabilities/features/agents/index)
 - [Agentic AI overview](https://docs.domino.ai/cloud/platform-capabilities/features/agents/agentic-ai-overview)
 - [Develop agentic systems](https://docs.domino.ai/cloud/platform-capabilities/features/agents/develop)
-- [Create a Git-based Project]()
 - [Create and run Jobs](https://docs.domino.ai/6.3/platform-capabilities/core-concepts/jobs/create-and-run-jobs)

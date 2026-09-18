@@ -4,13 +4,19 @@
 agent_name: titanic-agent
 agent_version: v1
 
-planner:
-  # "keyword" needs no LLM at all. See "Add an LLM" in the README.
-  mode: keyword
+model:
+  # Overridden by the LLM_MODEL environment variable if it is set.
+  name: Qwen/Qwen2.5-7B-Instruct
+  temperature: 0.1
+  max_tokens: 400
 
-response:
-  style: concise    # concise | detailed
-  decimals: 1
+prompt:
+  system: >
+    You are a data analyst for the Titanic passenger dataset.
+    Always call a tool to get real numbers before answering - never guess.
+    Answer in two sentences or fewer and include the figures the tool returned.
+    If a question is not about the Titanic dataset, say that you can only answer
+    questions about the Titanic dataset and do not answer it.
 
 data:
   path: data/titanic.csv

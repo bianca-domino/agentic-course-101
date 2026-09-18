@@ -1,6 +1,6 @@
 """Run the agent over sample_questions.csv — one trace per question.
 
-Run this as a Domino Job:  python scripts/dev_eval.py
+Run this as a Domino Job:  bash scripts/run_eval.sh
 
 That creates an agent version in the Experiment Manager holding every trace,
 its evaluation scores, and your ai_system_config.yaml as parameters. Only runs
@@ -43,15 +43,15 @@ def judge(span) -> Dict[str, float]:
     return score_answer(
         question=data_point["question"],
         answer=output.get("answer", ""),
-        tool_used=output.get("tool_used", "none"),
+        tools_used=output.get("tools_used", []),
         expected=data_point.get("expected", ""),
         expected_tool=data_point.get("expected_tool", ""),
     )
 
 
-@add_tracing(name="titanic_question", evaluator=judge)
+@add_tracing(name="titanic_question", autolog_frameworks=["pydantic_ai"], evaluator=judge)
 def answer_question(data_point: Dict[str, Any]) -> Dict[str, Any]:
-    """One question -> one trace, with the plan and tool call nested inside it."""
+    """One question -> one trace, with the LLM call and tool call nested inside it."""
     return run_agent(data_point["question"])
 
 
@@ -70,9 +70,12 @@ def main() -> None:
         with open(QUESTIONS_PATH, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 print(f"\n[{row['question_id']}] {row['question']}")
-                result = answer_question(row)
-                print(f"  tool: {result['tool_used']}")
-                print(f"  ->    {result['answer']}")
+                try:
+                    result = answer_question(row)
+                    print(f"  tool: {result['tool_used']}")
+                    print(f"  ->    {result['answer']}")
+                except Exception as exc:  # keep the batch going; the error is traced
+                    print(f"  !! failed: {exc}")
 
     print("\nDone. Open Experiments in your project to see the run and its traces.")
 
